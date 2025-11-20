@@ -6,6 +6,26 @@ import PageLayout from '../components/PageLayout';
 import Button from '../components/Button';
 import type { ListingDraft } from '../types';
 
+// 把圖片網址轉成 base64 data URL
+async function imageUrlToBase64(url: string): Promise<string> {
+    const response = await fetch(url);
+    const blob = await response.blob();
+
+    return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const result = reader.result;
+            if (typeof result === "string") {
+                resolve(result); // 這就是 base64 data URL
+            } else {
+                reject(new Error("讀取圖片失敗"));
+            }
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
+
 const SharePreviewCard: React.FC<{ listingData: ListingDraft }> = ({ listingData }) => {
     const displayText = listingData.selectedCopyStyle === 'brandStyle' && listingData.copy
         ? listingData.copy.brandStyle
@@ -58,17 +78,42 @@ const SharePage: React.FC = () => {
 
     // ✅ 當 shareSlug 存在時，把整個 listingDraft 存到 localStorage
     useEffect(() => {
+        console.log("SharePage useEffect 觸發，listingDraft =", listingDraft);
+
         if (!listingDraft.shareSlug) return;
 
-        try {
-            localStorage.setItem(
-                `listing_${listingDraft.shareSlug}`,
-                JSON.stringify(listingDraft)
-            );
-            console.log("已儲存 listing 到 localStorage：", listingDraft.shareSlug);
-        } catch (e) {
-            console.error("儲存到 localStorage 失敗", e);
-        }
+        const saveListing = async () => {
+            try {
+                let payload = listingDraft;
+
+                // 如果圖片是 blob: 開頭，代表是暫時性 URL，需要轉成 base64
+                if (
+                    listingDraft.enhancedImageUrl &&
+                    listingDraft.enhancedImageUrl.startsWith("blob:")
+                ) {
+                    try {
+                        const base64 = await imageUrlToBase64(listingDraft.enhancedImageUrl);
+                        payload = {
+                            ...listingDraft,
+                            enhancedImageUrl: base64,
+                        };
+                        console.log("已將圖片轉為 base64 儲存");
+                    } catch (err) {
+                        console.error("轉換圖片為 base64 失敗，仍存原始圖片 URL", err);
+                    }
+                }
+
+                localStorage.setItem(
+                    `listing_${listingDraft.shareSlug}`,
+                    JSON.stringify(payload)
+                );
+                console.log("已儲存 listing 到 localStorage：", listingDraft.shareSlug);
+            } catch (e) {
+                console.error("儲存到 localStorage 失敗", e);
+            }
+        };
+
+        saveListing();
     }, [listingDraft]);
 
     // 修正網址生成邏輯，避免重複拼接 protocol
