@@ -1,0 +1,25 @@
+
+import React from 'react';
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  label: string;
+  variant?: 'primary' | 'secondary' | 'outline';
+}
+
+const Button: React.FC<ButtonProps> = ({ label, variant = 'primary', ...props }) => {
+  const baseClasses = 'w-full rounded-lg py-3 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+
+  const variantClasses = {
+    primary: 'bg-brand-dark text-white hover:bg-gray-800 focus:ring-brand-dark',
+    secondary: 'bg-brand-accent text-white hover:bg-orange-600 focus:ring-brand-accent',
+    outline: 'bg-transparent text-brand-dark border border-brand-dark hover:bg-gray-100 focus:ring-brand-dark',
+  };
+
+  return (
+    <button className={`${baseClasses} ${variantClasses[variant]}`} {...props}>
+      {label}
+    </button>
+  );
+};
+
+export default Button;

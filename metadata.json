@@ -1,0 +1,5 @@
+{
+  "name": "SellLink-mvp",
+  "description": "An application to help users upload a product image and use AI to generate a title, description, and suggested price to create a shareable sales page.",
+  "requestFramePermissions": []
+}
