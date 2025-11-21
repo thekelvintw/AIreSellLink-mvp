@@ -1,9 +1,9 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
-const API_KEY = process.env.API_KEY;
+const API_KEY = import.meta.env.VITE_API_KEY;
 
 if (!API_KEY) {
-  console.warn("API_KEY environment variable not set. Gemini API calls will fail.");
+  console.warn("VITE_API_KEY 環境變數未設定，AI 呼叫會失敗");
 }
 const ai = new GoogleGenAI({ apiKey: API_KEY! });
 
