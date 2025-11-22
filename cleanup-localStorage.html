@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>清理 localStorage</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #222;
+            margin-bottom: 20px;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            color: #1976d2;
+        }
+        .stats {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+        button {
+            background: #ff3b30;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #d32f2f;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .success {
+            background: #4caf50;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+        .warning {
+            background: #ff9800;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 清理 localStorage</h1>
+        
+        <div class="info">
+            <strong>說明：</strong>這個工具會清理所有以 "listing_" 開頭的 localStorage 資料。
+        </div>
+
+        <div class="stats" id="stats">
+            <strong>目前 localStorage 狀態：</strong><br>
+            <span id="statsContent">載入中...</span>
+        </div>
+
+        <button id="cleanupBtn" onclick="cleanup()">清理所有 listing 資料</button>
+        <button onclick="refreshStats()" style="background: #2196f3; margin-top: 10px;">重新整理統計</button>
+        
+        <div class="success" id="success">
+            ✅ 清理完成！
+        </div>
+
+        <div class="warning" id="warning" style="display: none;">
+            ⚠️ 沒有找到需要清理的資料
+        </div>
+    </div>
+
+    <script>
+        function refreshStats() {
+            const keys = Object.keys(localStorage);
+            const listingKeys = keys.filter(key => key.startsWith('listing_'));
+            const totalSize = estimateSize();
+            
+            const statsContent = `
+                總項目數：${keys.length}<br>
+                listing 項目數：${listingKeys.length}<br>
+                預估總大小：${formatBytes(totalSize)}<br>
+                <br>
+                <strong>listing 項目列表：</strong><br>
+                ${listingKeys.length > 0 
+                    ? listingKeys.map(key => `• ${key}`).join('<br>')
+                    : '無'
+                }
+            `;
+            
+            document.getElementById('statsContent').innerHTML = statsContent;
+            document.getElementById('cleanupBtn').disabled = listingKeys.length === 0;
+            document.getElementById('warning').style.display = listingKeys.length === 0 ? 'block' : 'none';
+        }
+
+        function estimateSize() {
+            let total = 0;
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    total += localStorage[key].length + key.length;
+                }
+            }
+            return total;
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function cleanup() {
+            const keys = Object.keys(localStorage);
+            const listingKeys = keys.filter(key => key.startsWith('listing_'));
+            
+            if (listingKeys.length === 0) {
+                document.getElementById('warning').style.display = 'block';
+                return;
+            }
+
+            if (confirm(`確定要清理 ${listingKeys.length} 個 listing 資料嗎？`)) {
+                listingKeys.forEach(key => {
+                    localStorage.removeItem(key);
+                });
+                
+                document.getElementById('success').style.display = 'block';
+                document.getElementById('warning').style.display = 'none';
+                refreshStats();
+                
+                setTimeout(() => {
+                    document.getElementById('success').style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // 頁面載入時顯示統計
+        refreshStats();
+    </script>
+</body>
+</html>
+

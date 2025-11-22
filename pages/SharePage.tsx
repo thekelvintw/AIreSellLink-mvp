@@ -147,6 +147,26 @@ const SharePage: React.FC = () => {
       navigate('/upload');
     };
 
+    const cleanupOldListings = () => {
+        const keys = Object.keys(localStorage);
+        const listingKeys = keys.filter(key => key.startsWith('listing_'));
+        
+        if (listingKeys.length === 0) {
+            setToastMessage('沒有找到需要清理的資料');
+            setTimeout(() => setToastMessage(''), 2000);
+            return;
+        }
+
+        if (window.confirm(`確定要清除 ${listingKeys.length} 個舊的 listing 資料嗎？`)) {
+            listingKeys.forEach(key => {
+                localStorage.removeItem(key);
+            });
+            
+            setToastMessage(`✅ 已清除 ${listingKeys.length} 個舊的 listing 資料`);
+            setTimeout(() => setToastMessage(''), 3000);
+        }
+    };
+
     return (
         <PageLayout>
             <div className="space-y-6 text-center">
@@ -163,6 +183,12 @@ const SharePage: React.FC = () => {
                     <Button label="一鍵分享" onClick={handleShare} variant="secondary" />
                     <Button label="複製連結" onClick={handleCopy} />
                     <Button label="再上架一件" onClick={handleNewListing} variant="outline" />
+                    <Button 
+                        label="清除舊 Listing 資料（開發用）" 
+                        onClick={cleanupOldListings} 
+                        variant="outline"
+                        className="text-sm text-gray-500 border-gray-300 hover:bg-gray-50"
+                    />
                 </div>
             </div>
             {toastMessage && (
