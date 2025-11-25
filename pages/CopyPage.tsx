@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { ListingContext } from '../context/ListingContext';
-import { generateCopy, enhanceImage } from '../services/geminiService';
+import { generateCopy } from '../services/geminiService';
 import PageLayout from '../components/PageLayout';
 import Button from '../components/Button';
 
@@ -80,9 +80,7 @@ const CopyPage: React.FC = () => {
     const [listingDraft, setListingDraft] = context;
     
     const [copy, setCopy] = useState({ brandStyle: '', resaleStyle: '' });
-    const [enhancedImageUrl, setEnhancedImageUrl] = useState('');
     const [isCopyLoading, setIsCopyLoading] = useState(true);
-    const [isImageLoading, setIsImageLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'brandStyle' | 'resaleStyle'>('resaleStyle');
 
     const navigate = useNavigate();
@@ -91,21 +89,29 @@ const CopyPage: React.FC = () => {
         const fetchContent = async () => {
             if (listingDraft.selectedLabel && listingDraft.originalImage) {
                 setIsCopyLoading(true);
-                setIsImageLoading(true);
                 
-                generateCopy(listingDraft.selectedLabel).then(result => {
-                    setCopy(result);
-                    setIsCopyLoading(false);
-                });
+                const detectionReason = listingDraft.candidates?.length
+                    ? `AI 辨識候選：${listingDraft.candidates.slice(0, 3).join('、')}`
+                    : '';
 
-                enhanceImage(listingDraft.originalImage.base64).then(resultBase64 => {
-                    setEnhancedImageUrl(`data:image/png;base64,${resultBase64}`);
-                    setIsImageLoading(false);
+                generateCopy({
+                    itemName: listingDraft.selectedLabel,
+                    reason: detectionReason,
+                    officialUrl: listingDraft.officialUrl ?? undefined,
+                })
+                .then(result => {
+                    setCopy(result);
+                })
+                .catch((error) => {
+                    console.error('Error generating copy via API:', error);
+                })
+                .finally(() => {
+                    setIsCopyLoading(false);
                 });
             }
         };
         fetchContent();
-    }, [listingDraft.selectedLabel, listingDraft.originalImage]);
+    }, [listingDraft.selectedLabel, listingDraft.originalImage, listingDraft.candidates, listingDraft.officialUrl]);
 
     if (!listingDraft.selectedLabel) {
         return <Navigate to="/detect" replace />;
@@ -119,16 +125,25 @@ const CopyPage: React.FC = () => {
     };
 
     const handleNext = () => {
+        const computedImage =
+            listingDraft.enhancedImageUrl ||
+            (listingDraft.originalImage ? `data:image/png;base64,${listingDraft.originalImage.base64}` : undefined);
+
         setListingDraft(prev => ({ 
             ...prev, 
             copy, 
-            enhancedImageUrl,
+            enhancedImageUrl: computedImage,
             selectedCopyStyle: activeTab,
         }));
         navigate('/price');
     };
 
     const originalImageUrl = URL.createObjectURL(listingDraft.originalImage!.file);
+    const processedImageUrl =
+        listingDraft.enhancedImageUrl ||
+        (listingDraft.originalImage ? `data:image/png;base64,${listingDraft.originalImage.base64}` : originalImageUrl);
+
+    const isNextDisabled = isCopyLoading || (!copy.brandStyle && !copy.resaleStyle);
 
     return (
         <PageLayout>
@@ -137,7 +152,7 @@ const CopyPage: React.FC = () => {
                     <h1 className="text-2xl font-bold">文案與圖片</h1>
                     <p className="text-gray-500 mt-1">AI 已生成文案，您可以直接點擊編輯！</p>
                 </div>
-                <ImagePreview originalSrc={originalImageUrl} enhancedSrc={enhancedImageUrl} isLoading={isImageLoading} />
+                <ImagePreview originalSrc={originalImageUrl} enhancedSrc={processedImageUrl} isLoading={false} />
                 <CopyTabs 
                     copy={copy} 
                     onCopyChange={handleCopyChange} 
@@ -145,7 +160,7 @@ const CopyPage: React.FC = () => {
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
                 />
-                <Button label="下一步" onClick={handleNext} disabled={isCopyLoading || isImageLoading} />
+                <Button label="下一步" onClick={handleNext} disabled={isNextDisabled} />
             </div>
         </PageLayout>
     );

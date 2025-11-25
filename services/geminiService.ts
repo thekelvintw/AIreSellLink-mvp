@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type, Modality } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 const API_KEY = import.meta.env.VITE_API_KEY;
 
@@ -66,34 +66,38 @@ export const detectItemFromFile = async (file: File): Promise<string[]> => {
   return detectItem(imageBase64);
 };
 
-export const generateCopy = async (itemLabel: string): Promise<{ brandStyle: string; resaleStyle: string }> => {
+type GenerateCopyParams = {
+  itemName: string;
+  reason?: string;
+  officialUrl?: string | null;
+};
+
+export const generateCopy = async ({
+  itemName,
+  reason = "",
+  officialUrl = "",
+}: GenerateCopyParams): Promise<{ brandStyle: string; resaleStyle: string }> => {
   try {
-    if (!ai) {
-      console.warn("AI client not initialized. Using mock result.");
-      return {
-        brandStyle: "這是模擬的品牌風格文案，專業且注重細節。",
-        resaleStyle: "嘿！這東西超讚的，狀況良好，快來看看！",
-      };
-    }
-     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: `Given the product name "${itemLabel}", write two versions of a sales description in Traditional Chinese. The first, 'brandStyle', should be professional and highlight features, like an official brand website. The second, 'resaleStyle', should be friendly and casual, suitable for a second-hand marketplace.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            brandStyle: { type: Type.STRING },
-            resaleStyle: { type: Type.STRING },
-          },
-          required: ["brandStyle", "resaleStyle"],
-        },
-      },
+    const resp = await fetch("/api/generateCopy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        itemName,
+        reason,
+        officialUrl,
+      }),
     });
 
-    const jsonText = response.text.trim();
-    const copy = JSON.parse(jsonText);
-    return copy;
+    if (!resp.ok) {
+      const detail = await resp.text();
+      throw new Error(`生成文案失敗: ${detail}`);
+    }
+
+    const data = await resp.json();
+    return {
+      resaleStyle: data.resell || data.resale || "",
+      brandStyle: data.brand || data.brandStyle || "",
+    };
   } catch (error) {
     console.error("Error generating copy:", error);
     return {
@@ -135,35 +139,6 @@ export const suggestPrice = async (itemLabel: string): Promise<{ min: number; ma
 };
 
 export const enhanceImage = async (base64Image: string): Promise<string> => {
-  try {
-    if (!ai) {
-      console.warn("AI client not initialized. Returning original image.");
-      return base64Image;
-    }
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: {
-            parts: [
-                {
-                    inlineData: { data: base64Image, mimeType: 'image/jpeg' },
-                },
-                { text: 'Take the main object in this image, professionally remove the background, and place it on a clean, bright, neutral light grey background (#F5F5F5). The object should be well-lit and centered.' },
-            ],
-        },
-        config: {
-            responseModalities: [Modality.IMAGE],
-        },
-    });
-
-    for (const part of response.candidates[0].content.parts) {
-      if (part.inlineData) {
-        return part.inlineData.data;
-      }
-    }
-    throw new Error("No image data in response");
-
-  } catch (error) {
-    console.error("Error enhancing image:", error);
-    return base64Image; // Return original on error
-  }
+  // MVP: disable Gemini image generation to avoid 400 errors. Reuse original image.
+  return base64Image;
 };
