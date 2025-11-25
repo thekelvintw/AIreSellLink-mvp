@@ -100,6 +100,9 @@ const UploadPage: React.FC = () => {
     setError(message);
   };
 
+  const createDataUrl = (base64: string, mimeType: string) =>
+    `data:${mimeType || 'image/png'};base64,${base64}`;
+
   const handleRemoveBg = async () => {
     if (!file) return;
     
@@ -107,23 +110,46 @@ const UploadPage: React.FC = () => {
     setError(null);
     
     try {
-      const url = await removeBackground(file);
-      setNoBgUrl(url);
-      
-      // 將去背後的圖片轉為 base64 並存到 context
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const noBgFile = new File([blob], 'no-bg.png', { type: 'image/png' });
-      const base64 = await fileToBase64(noBgFile);
-      
+      const result = await removeBackground(file);
+
+      let displayUrl = '';
+      let imageFile = file;
+      let base64Data = '';
+
+      if (result.url) {
+        displayUrl = result.url;
+        const response = await fetch(result.url);
+        const blob = await response.blob();
+        imageFile = new File([blob], 'no-bg.png', { type: blob.type || 'image/png' });
+        base64Data = await fileToBase64(imageFile);
+      } else {
+        base64Data = result.base64 || (await fileToBase64(file));
+        displayUrl = createDataUrl(base64Data, file.type);
+      }
+
+      setNoBgUrl(displayUrl);
       setListingDraft(prev => ({ 
         ...prev, 
-        originalImage: { file, base64 },
-        enhancedImageUrl: url
+        originalImage: { file: imageFile, base64: base64Data },
+        enhancedImageUrl: displayUrl
       }));
+
+      if (result.usedFallback) {
+        setError('目前暫時無法去背，將先使用原圖繼續');
+      } else {
+        setError(null);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '去背失敗');
       console.error("Remove background error:", err);
+      const base64Data = await fileToBase64(file);
+      const dataUrl = createDataUrl(base64Data, file.type);
+      setNoBgUrl(dataUrl);
+      setListingDraft(prev => ({
+        ...prev,
+        originalImage: { file, base64: base64Data },
+        enhancedImageUrl: dataUrl
+      }));
+      setError('目前暫時無法去背，將先使用原圖繼續');
     } finally {
       setIsRemovingBg(false);
     }
@@ -177,6 +203,9 @@ const UploadPage: React.FC = () => {
             {error}
           </div>
         )}
+        <p className="text-xs text-gray-400">
+          目前去背服務為測試版，若失敗系統會自動改用原圖。
+        </p>
         
         {file && !noBgUrl && !isRemovingBg && (
           <Button 
