@@ -8,55 +8,39 @@ const fallbackCopy: CopyResult = {
   brandStyle: "這是品牌風格文案範例，請自行調整內容。",
 };
 
-const buildPrompt = (itemName: string, reason: string, officialUrl: string) => `
-你是一位幫台灣二手賣家寫商品文案的中文助手。
-請根據以下資訊，輸出兩段文案：
-- 商品名稱：${itemName || "（未提供）"}
-- AI 辨識依據說明：${reason || "（未提供）"}
-- 官方商品連結：${officialUrl || "（沒有提供）"}
+const buildPrompt = (itemName: string, reason: string, officialUrl: string) => `你是一位幫台灣二手賣家寫商品文案的助手。
+請根據下列資訊產生兩段文案：
 
-1）「轉售風格」：像一般人賣二手商品的口吻，生活化、誠實說明使用狀況，約 80～120 字，繁體中文。
-2）「品牌風格」：偏官方介紹，重點放在材質、設計與特色，約 80～120 字，繁體中文。
+1. 轉售風格：像在二手社團貼文的口語口吻，約 80～120 字。
+2. 品牌風格：偏官方介紹、電商商品頁風格，約 80～120 字。
 
-請只輸出 JSON，格式如下（不要加反引號、不要加說明文字）：
-{
-  "resell": "轉售風格文案",
-  "brand": "品牌風格文案"
-}
-`;
+輸出格式請嚴格遵守以下分隔線（不要加入其他說明、不要加入程式碼區塊）：
 
-const normalizeCopyResult = (resale?: string, brand?: string): CopyResult => ({
-  resaleStyle: resale?.trim() || fallbackCopy.resaleStyle,
-  brandStyle: brand?.trim() || fallbackCopy.brandStyle,
-});
+===RESELL===
+（轉售風格文案）
+===BRAND===
+（品牌風格文案）
+
+商品名稱：${itemName || "（未提供）"}
+AI 辨識資訊：${reason || "（未提供）"}
+官方連結：${officialUrl || "（無）"}`;
 
 const parseCopyResponse = (text: string): CopyResult => {
   if (!text) return { ...fallbackCopy };
 
-  try {
-    const parsed = JSON.parse(text);
+  const cleaned = text.replace(/```[\s\S]*?```/g, "").trim();
+  const [resellSegment, brandSegment] = cleaned.split("===BRAND===");
+  const resaleStyle = resellSegment?.split("===RESELL===")[1]?.trim() || "";
+  const brandStyle = brandSegment?.trim() || "";
 
-    if (Array.isArray(parsed)) {
-      const [resale, brand] = parsed;
-      return normalizeCopyResult(resale, brand);
-    }
-
-    if (parsed && typeof parsed === "object") {
-      return normalizeCopyResult(
-        parsed.resaleStyle || parsed.resell || parsed.resale,
-        parsed.brandStyle || parsed.brand
-      );
-    }
-  } catch {
-    // ignore JSON parse errors, fallback to text splitting
+  if (!resaleStyle && !brandStyle) {
+    return { ...fallbackCopy };
   }
 
-  const parts = text.split(/\n+/).map((s) => s.trim()).filter(Boolean);
-  if (parts.length >= 2) {
-    return normalizeCopyResult(parts[0], parts[1]);
-  }
-
-  return { ...fallbackCopy };
+  return {
+    resaleStyle: resaleStyle || fallbackCopy.resaleStyle,
+    brandStyle: brandStyle || fallbackCopy.brandStyle,
+  };
 };
 
 export async function onRequestPost({ request, env }: { request: Request; env: any }) {
@@ -93,7 +77,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: a
     }
 
     const data = await response.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+    const parts = data?.candidates?.[0]?.content?.parts ?? [];
+    const text = parts.map((part: any) => part?.text || "").join("\n").trim();
     const result = parseCopyResponse(text);
     return Response.json(result);
   } catch (error: any) {
