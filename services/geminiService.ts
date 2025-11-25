@@ -16,7 +16,7 @@ export const detectItem = async (base64Image: string): Promise<string[]> => {
       return ["模擬產品 A", "模擬產品 B", "模擬產品 C"];
     }
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: {
         parts: [
           {
@@ -60,7 +60,7 @@ export const generateCopy = async (itemLabel: string): Promise<{ brandStyle: str
       };
     }
      const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: `Given the product name "${itemLabel}", write two versions of a sales description in Traditional Chinese. The first, 'brandStyle', should be professional and highlight features, like an official brand website. The second, 'resaleStyle', should be friendly and casual, suitable for a second-hand marketplace.`,
       config: {
         responseMimeType: "application/json",
@@ -94,7 +94,7 @@ export const suggestPrice = async (itemLabel: string): Promise<{ min: number; ma
       return { min: 500, max: 1500 };
     }
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: `Based on the product "${itemLabel}", suggest a reasonable price range in TWD for selling it second-hand.`,
       config: {
         responseMimeType: "application/json",
@@ -125,7 +125,7 @@ export const enhanceImage = async (base64Image: string): Promise<string> => {
       return base64Image;
     }
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-1.5-flash',
         contents: {
             parts: [
                 {
