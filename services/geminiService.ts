@@ -9,6 +9,63 @@ if (API_KEY) {
   console.warn("VITE_API_KEY 環境變數未設定，AI 呼叫會使用模擬結果");
 }
 
+/**
+ * 將 File 轉換為 base64 字串
+ */
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
+/**
+ * 透過後端 API 辨識商品圖片
+ * @param imageBase64 - 圖片的 base64 字串（可包含 data URL prefix）
+ * @returns 商品名稱陣列
+ */
+export const detectItem = async (imageBase64: string): Promise<string[]> => {
+  try {
+    const resp = await fetch("/api/detect", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ imageBase64 })
+    });
+
+    if (!resp.ok) {
+      const errorData = await resp.json().catch(() => ({ error: "未知錯誤" }));
+      throw new Error("AI 辨識錯誤: " + (errorData.error || `HTTP ${resp.status}`));
+    }
+
+    const json = await resp.json();
+    if (!json.ok) {
+      throw new Error("AI 辨識錯誤: " + (json.error || "未知錯誤"));
+    }
+
+    return json.items as string[];
+  } catch (error) {
+    console.error("Error detecting item:", error);
+    throw error;
+  }
+};
+
+/**
+ * 透過後端 API 辨識商品圖片（使用 File 物件）
+ * @param file - 圖片檔案
+ * @returns 商品名稱陣列
+ */
+export const detectItemFromFile = async (file: File): Promise<string[]> => {
+  const imageBase64 = await fileToBase64(file);
+  return detectItem(imageBase64);
+};
+
 export const generateCopy = async (itemLabel: string): Promise<{ brandStyle: string; resaleStyle: string }> => {
   try {
     if (!ai) {
