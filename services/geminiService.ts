@@ -72,11 +72,21 @@ type GenerateCopyParams = {
   officialUrl?: string | null;
 };
 
+type CopyResult = {
+  resaleStyle: string;
+  brandStyle: string;
+};
+
+const COPY_FALLBACK: CopyResult = {
+  resaleStyle: "系統暫時無法自動產生文案，請先自行輸入。",
+  brandStyle: "",
+};
+
 export const generateCopy = async ({
   itemName,
   reason = "",
   officialUrl = "",
-}: GenerateCopyParams): Promise<{ brandStyle: string; resaleStyle: string }> => {
+}: GenerateCopyParams): Promise<CopyResult> => {
   try {
     const resp = await fetch("/api/generateCopy", {
       method: "POST",
@@ -90,20 +100,18 @@ export const generateCopy = async ({
 
     if (!resp.ok) {
       const detail = await resp.text();
-      throw new Error(`生成文案失敗: ${detail}`);
+      console.error("generateCopy error", resp.status, detail);
+      return { ...COPY_FALLBACK };
     }
 
-    const data = await resp.json();
+    const data = await resp.json().catch(() => null);
     return {
-      resaleStyle: data.resell || data.resale || "",
-      brandStyle: data.brand || data.brandStyle || "",
+      resaleStyle: data?.resaleStyle || data?.resell || data?.resale || COPY_FALLBACK.resaleStyle,
+      brandStyle: data?.brandStyle || data?.brand || COPY_FALLBACK.brandStyle,
     };
   } catch (error) {
     console.error("Error generating copy:", error);
-    return {
-      brandStyle: "這是模擬的品牌風格文案，專業且注重細節。",
-      resaleStyle: "嘿！這東西超讚的，狀況良好，快來看看！",
-    };
+    return { ...COPY_FALLBACK };
   }
 };
 

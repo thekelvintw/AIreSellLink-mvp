@@ -1,6 +1,11 @@
-const fallbackCopy = {
-  resell: "這是轉售風格文案範例，請自行調整內容。",
-  brand: "這是品牌風格文案範例，請自行調整內容。",
+type CopyResult = {
+  resaleStyle: string;
+  brandStyle: string;
+};
+
+const fallbackCopy: CopyResult = {
+  resaleStyle: "這是轉售風格文案範例，請自行調整內容。",
+  brandStyle: "這是品牌風格文案範例，請自行調整內容。",
 };
 
 const buildPrompt = (itemName: string, reason: string, officialUrl: string) => `
@@ -20,21 +25,38 @@ const buildPrompt = (itemName: string, reason: string, officialUrl: string) => `
 }
 `;
 
-const parseCopyResponse = (text: string) => {
+const normalizeCopyResult = (resale?: string, brand?: string): CopyResult => ({
+  resaleStyle: resale?.trim() || fallbackCopy.resaleStyle,
+  brandStyle: brand?.trim() || fallbackCopy.brandStyle,
+});
+
+const parseCopyResponse = (text: string): CopyResult => {
   if (!text) return { ...fallbackCopy };
+
   try {
     const parsed = JSON.parse(text);
-    return {
-      resell: parsed.resell || parsed.resale || fallbackCopy.resell,
-      brand: parsed.brand || parsed.brandStyle || fallbackCopy.brand,
-    };
+
+    if (Array.isArray(parsed)) {
+      const [resale, brand] = parsed;
+      return normalizeCopyResult(resale, brand);
+    }
+
+    if (parsed && typeof parsed === "object") {
+      return normalizeCopyResult(
+        parsed.resaleStyle || parsed.resell || parsed.resale,
+        parsed.brandStyle || parsed.brand
+      );
+    }
   } catch {
-    const parts = text.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
-    return {
-      resell: parts[0] || fallbackCopy.resell,
-      brand: parts[1] || parts[0] || fallbackCopy.brand,
-    };
+    // ignore JSON parse errors, fallback to text splitting
   }
+
+  const parts = text.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    return normalizeCopyResult(parts[0], parts[1]);
+  }
+
+  return { ...fallbackCopy };
 };
 
 export async function onRequestPost({ request, env }: { request: Request; env: any }) {
