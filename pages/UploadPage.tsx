@@ -1,5 +1,5 @@
 
-import React, { useState, useContext, ChangeEvent } from 'react';
+import React, { useState, useContext, ChangeEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ListingContext } from '../context/ListingContext';
 import { fileToBase64 } from '../utils/fileUtils';
@@ -7,16 +7,37 @@ import { removeBackground } from '../services/removeBgService';
 import PageLayout from '../components/PageLayout';
 import Button from '../components/Button';
 
+const MAX_UPLOAD_SIZE = 2.5 * 1024 * 1024; // 2.5MB
+
+const getLocalStorageUsageInMB = (): number => {
+  let totalBytes = 0;
+  for (const key in localStorage) {
+    if (!Object.prototype.hasOwnProperty.call(localStorage, key)) continue;
+    const value = localStorage.getItem(key);
+    if (value) {
+      totalBytes += new Blob([value]).size;
+    }
+  }
+  return totalBytes / (1024 * 1024);
+};
+
 const UploadCard: React.FC<{ 
   onUpload: (file: File, previewUrl: string) => void;
   isProcessing?: boolean;
   noBgUrl?: string | null;
-}> = ({ onUpload, isProcessing, noBgUrl }) => {
+  maxSize: number;
+  onFileTooLarge: (maxSize: number) => void;
+}> = ({ onUpload, isProcessing, noBgUrl, maxSize, onFileTooLarge }) => {
   const [preview, setPreview] = useState<string | null>(null);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      if (file.size > maxSize) {
+        onFileTooLarge(maxSize);
+        (event.target as HTMLInputElement).value = '';
+        return;
+      }
       const previewUrl = URL.createObjectURL(file);
       setPreview(previewUrl);
       onUpload(file, previewUrl);
@@ -64,10 +85,19 @@ const UploadPage: React.FC = () => {
   const [noBgUrl, setNoBgUrl] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    console.log(`目前 localStorage 用量：約 ${getLocalStorageUsageInMB().toFixed(2)} MB`);
+  }, []);
+
   const handleUpload = (uploadedFile: File) => {
     setFile(uploadedFile);
     setNoBgUrl(null);
     setError(null);
+  };
+
+  const handleFileTooLarge = (maxSize: number) => {
+    const message = `檔案太大，請選擇小於 ${(maxSize / (1024 * 1024)).toFixed(1)} MB 的圖片。`;
+    setError(message);
   };
 
   const handleRemoveBg = async () => {
@@ -138,6 +168,8 @@ const UploadPage: React.FC = () => {
           onUpload={handleUpload} 
           isProcessing={isRemovingBg}
           noBgUrl={noBgUrl}
+          maxSize={MAX_UPLOAD_SIZE}
+          onFileTooLarge={handleFileTooLarge}
         />
         
         {error && (
