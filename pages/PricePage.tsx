@@ -17,7 +17,7 @@ const PriceInput: React.FC<{ hintMin: number, hintMax: number, value: string, on
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder="0"
-                className="w-full pl-12 pr-4 py-3 text-2xl font-bold border border-gray-700 rounded-lg focus:ring-brand-accent focus:border-brand-accent bg-brand-dark text-white placeholder-gray-400"
+                className="w-full pl-12 pr-4 py-3 text-2xl font-bold border border-gray-300 rounded-lg focus:ring-brand-accent focus:border-brand-accent bg-white text-brand-dark placeholder-gray-400"
             />
         </div>
         <p className="text-center text-sm text-gray-500 mt-3">
@@ -39,7 +39,7 @@ const ContactPicker: React.FC<{ onNicknameChange: (val: string) => void, onConta
                     type="text"
                     onChange={e => onNicknameChange(e.target.value)}
                     placeholder="王小明"
-                    className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-brand-accent focus:border-brand-accent bg-brand-dark text-white placeholder-gray-400"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-brand-accent focus:border-brand-accent bg-white text-brand-dark placeholder-gray-400"
                 />
             </div>
             <div>
@@ -50,7 +50,7 @@ const ContactPicker: React.FC<{ onNicknameChange: (val: string) => void, onConta
                         setContactType(e.target.value as Contact['type']);
                         onContactChange({ type: e.target.value as Contact['type'], value: '' });
                     }}
-                    className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-brand-accent focus:border-brand-accent bg-brand-dark text-white"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-brand-accent focus:border-brand-accent bg-white text-brand-dark"
                 >
                     <option value="">請選擇</option>
                     <option value="LINE">LINE ID</option>
@@ -65,7 +65,7 @@ const ContactPicker: React.FC<{ onNicknameChange: (val: string) => void, onConta
                         type={contactType === 'Email' ? 'email' : 'text'}
                         onChange={e => onContactChange({ type: contactType, value: e.target.value })}
                         placeholder={`請輸入您的 ${contactType}`}
-                        className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-brand-accent focus:border-brand-accent bg-brand-dark text-white placeholder-gray-400"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-brand-accent focus:border-brand-accent bg-white text-brand-dark placeholder-gray-400"
                     />
                 </div>
             )}
