@@ -66,7 +66,7 @@ const CopyTabs: React.FC<CopyTabsProps> = ({ copy, onCopyChange, isLoading, acti
             <textarea
                 value={currentText}
                 onChange={handleTextChange}
-                className="w-full p-6 bg-brand-dark text-white min-h-[200px] border-0 focus:ring-2 focus:ring-inset focus:ring-brand-accent resize-y"
+                className="w-full p-6 bg-white text-brand-dark min-h-[200px] border-0 focus:ring-2 focus:ring-inset focus:ring-brand-accent resize-y"
                 aria-label={activeTab === 'resaleStyle' ? "轉售風格文案" : "品牌風格文案"}
             />
         </div>
