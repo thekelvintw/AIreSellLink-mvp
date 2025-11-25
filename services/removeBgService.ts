@@ -1,6 +1,6 @@
 import { fileToBase64 } from '../utils/fileUtils';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 export interface RemoveBgResponse {
   success: boolean;

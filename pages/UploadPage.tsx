@@ -219,7 +219,7 @@ const UploadPage: React.FC = () => {
         <Button 
           label="下一步" 
           onClick={handleNext} 
-          disabled={!file || isRemovingBg} 
+          disabled={!file} 
         />
       </div>
     </PageLayout>
