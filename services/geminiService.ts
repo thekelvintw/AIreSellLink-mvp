@@ -2,13 +2,19 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 const API_KEY = import.meta.env.VITE_API_KEY;
 
-if (!API_KEY) {
-  console.warn("VITE_API_KEY 環境變數未設定，AI 呼叫會失敗");
+let ai: GoogleGenAI | null = null;
+if (API_KEY) {
+  ai = new GoogleGenAI({ apiKey: API_KEY });
+} else {
+  console.warn("VITE_API_KEY 環境變數未設定，AI 呼叫會使用模擬結果");
 }
-const ai = new GoogleGenAI({ apiKey: API_KEY! });
 
 export const detectItem = async (base64Image: string): Promise<string[]> => {
   try {
+    if (!ai) {
+      console.warn("AI client not initialized. Using mock result.");
+      return ["模擬產品 A", "模擬產品 B", "模擬產品 C"];
+    }
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: {
@@ -46,6 +52,13 @@ export const detectItem = async (base64Image: string): Promise<string[]> => {
 
 export const generateCopy = async (itemLabel: string): Promise<{ brandStyle: string; resaleStyle: string }> => {
   try {
+    if (!ai) {
+      console.warn("AI client not initialized. Using mock result.");
+      return {
+        brandStyle: "這是模擬的品牌風格文案，專業且注重細節。",
+        resaleStyle: "嘿！這東西超讚的，狀況良好，快來看看！",
+      };
+    }
      const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `Given the product name "${itemLabel}", write two versions of a sales description in Traditional Chinese. The first, 'brandStyle', should be professional and highlight features, like an official brand website. The second, 'resaleStyle', should be friendly and casual, suitable for a second-hand marketplace.`,
@@ -76,6 +89,10 @@ export const generateCopy = async (itemLabel: string): Promise<{ brandStyle: str
 
 export const suggestPrice = async (itemLabel: string): Promise<{ min: number; max: number }> => {
   try {
+    if (!ai) {
+      console.warn("AI client not initialized. Using mock result.");
+      return { min: 500, max: 1500 };
+    }
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `Based on the product "${itemLabel}", suggest a reasonable price range in TWD for selling it second-hand.`,
@@ -103,6 +120,10 @@ export const suggestPrice = async (itemLabel: string): Promise<{ min: number; ma
 
 export const enhanceImage = async (base64Image: string): Promise<string> => {
   try {
+    if (!ai) {
+      console.warn("AI client not initialized. Returning original image.");
+      return base64Image;
+    }
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: {
