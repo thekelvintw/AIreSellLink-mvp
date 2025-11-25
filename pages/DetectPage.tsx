@@ -97,7 +97,9 @@ const DetectPage: React.FC = () => {
             <div className="space-y-6">
                 <div>
                     <h2 className="text-xl font-bold mb-2">AI 辨識結果</h2>
-                    <p className="text-gray-500 mb-4">請選擇最接近的品項</p>
+                    <p className="text-sm text-gray-600 mb-2">
+                        根據圖片顯示的品牌標誌和產品外觀，最接近的商品名稱是：
+                    </p>
                     <CandidatesList candidates={candidates} selected={selectedLabel} onSelect={setSelectedLabel} />
                 </div>
                 <div>
