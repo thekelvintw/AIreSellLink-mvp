@@ -22,6 +22,29 @@ const extractBase64Payload = (value: string) => {
   };
 };
 
+/**
+ * 清洗和规范化商品名称数组
+ * 移除括号、斜杠、编号前缀等，只保留干净的商品名称
+ */
+function normalizeItems(rawItems: string[]): string[] {
+  return rawItems
+    .map(s => s.trim())
+    // 去掉包在 () 裡的一整串
+    .map(s => s.replace(/^\((.*)\)$/, "$1"))
+    // 如果裡面有「 / 」就只取第一個
+    .map(s => s.split(/[／/]/)[0].trim())
+    // 去掉開頭的編號、符號（1.、- 、• 之類）
+    .map(s => s.replace(/^[\d\-•\.\s]+/, ""))
+    // 去掉開頭的「原因：」「根據...」等說明文字
+    .map(s => s.replace(/^(原因：|根據.*?[，,]\s*|因為.*?[，,]\s*)/i, ""))
+    // 過濾太短或明顯不是名稱的
+    .filter(s => s.length >= 2)
+    // 去重
+    .filter((s, idx, arr) => arr.indexOf(s) === idx)
+    // 只留前三個
+    .slice(0, 3);
+}
+
 export async function onRequestPost({ request, env }: { request: Request; env: any }) {
   try {
     const contentType = request.headers.get("content-type") || "";
@@ -84,7 +107,16 @@ export async function onRequestPost({ request, env }: { request: Request; env: a
               }
             },
             {
-              text: "請辨識這張商品圖片，回傳最接近的商品名稱。"
+              text: `請你根據圖片判斷商品的可能名稱，給我三個候選。
+
+輸出格式：
+- 儘量用繁體中文
+- 不要解釋
+- 不要加 Markdown
+- 只輸出 JSON，格式如下：
+{"items": ["選項一", "選項二", "選項三"]}
+
+重要：每個選項只能是商品名稱，不要包含原因說明、標點符號 ()、/、- 之前的修飾語。`
             }
           ]
         }
@@ -112,30 +144,33 @@ export async function onRequestPost({ request, env }: { request: Request; env: a
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     // 解析返回的商品名称
-    let items: string[] = [];
+    let rawItems: string[] = [];
 
     // 若回傳 JSON 格式且為陣列
     if (text) {
       try {
         const parsed = JSON.parse(text);
         if (Array.isArray(parsed)) {
-          items = parsed;
+          rawItems = parsed;
         } else if (parsed.items && Array.isArray(parsed.items)) {
-          items = parsed.items;
+          rawItems = parsed.items;
         }
       } catch (e) {
         // JSON parse 失敗，使用 fallback
         // 將文字按逗號或換行拆成最多三個選項
-        items = text.split(/[\n,；]/).map(s => s.trim()).filter(s => s).slice(0, 3);
+        rawItems = text.split(/[\n,；]/).map(s => s.trim()).filter(s => s).slice(0, 3);
       }
     }
 
     // 如果仍然沒有 items，使用文字內容做一個選項
-    if (items.length === 0 && text) {
-      items = [text];
+    if (rawItems.length === 0 && text) {
+      rawItems = [text];
     }
 
-    // 如果还是没有，返回默认值
+    // 清洗和规范化商品名称
+    let items = normalizeItems(rawItems);
+
+    // 如果清洗後还是没有，返回默认值
     if (items.length === 0) {
       items = ["未辨識到商品"];
     }
