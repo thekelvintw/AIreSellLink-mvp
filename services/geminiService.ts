@@ -9,47 +9,6 @@ if (API_KEY) {
   console.warn("VITE_API_KEY 環境變數未設定，AI 呼叫會使用模擬結果");
 }
 
-export const detectItem = async (base64Image: string): Promise<string[]> => {
-  try {
-    if (!ai) {
-      console.warn("AI client not initialized. Using mock result.");
-      return ["模擬產品 A", "模擬產品 B", "模擬產品 C"];
-    }
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              mimeType: 'image/jpeg',
-              data: base64Image,
-            },
-          },
-          {
-            text: '分析這張產品圖片。請辨識出物品並提供 3 個可能的具體名稱（使用繁體中文）。以 JSON 字串陣列的格式回傳結果。例如：`["Nike Air Force 1 \'07", "白色皮革運動鞋", "經典籃球鞋"]`',
-          },
-        ],
-      },
-       config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.STRING
-          }
-        }
-      }
-    });
-    const jsonText = response.text.trim();
-    const candidates = JSON.parse(jsonText);
-    return Array.isArray(candidates) ? candidates : [];
-  } catch (error) {
-    console.error("Error detecting item:", error);
-    // Return mock data on failure
-    return ["模擬產品 A", "模擬產品 B", "模擬產品 C"];
-  }
-};
-
 export const generateCopy = async (itemLabel: string): Promise<{ brandStyle: string; resaleStyle: string }> => {
   try {
     if (!ai) {
@@ -60,7 +19,7 @@ export const generateCopy = async (itemLabel: string): Promise<{ brandStyle: str
       };
     }
      const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.0-flash',
       contents: `Given the product name "${itemLabel}", write two versions of a sales description in Traditional Chinese. The first, 'brandStyle', should be professional and highlight features, like an official brand website. The second, 'resaleStyle', should be friendly and casual, suitable for a second-hand marketplace.`,
       config: {
         responseMimeType: "application/json",
@@ -94,7 +53,7 @@ export const suggestPrice = async (itemLabel: string): Promise<{ min: number; ma
       return { min: 500, max: 1500 };
     }
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.0-flash',
       contents: `Based on the product "${itemLabel}", suggest a reasonable price range in TWD for selling it second-hand.`,
       config: {
         responseMimeType: "application/json",
@@ -125,7 +84,7 @@ export const enhanceImage = async (base64Image: string): Promise<string> => {
       return base64Image;
     }
     const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash',
         contents: {
             parts: [
                 {

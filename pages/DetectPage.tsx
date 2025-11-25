@@ -2,7 +2,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { ListingContext } from '../context/ListingContext';
-import { detectItem } from '../services/geminiService';
 import PageLayout from '../components/PageLayout';
 import Button from '../components/Button';
 
@@ -39,16 +38,34 @@ const DetectPage: React.FC = () => {
   
   useEffect(() => {
     const fetchCandidates = async () => {
-      if (listingDraft.originalImage?.base64) {
-        setIsLoading(true);
-        const result = await detectItem(listingDraft.originalImage.base64);
-        setCandidates(result);
-        if (result.length > 0) {
-          setSelectedLabel(result[0]);
+      if (!listingDraft.originalImage?.file) return;
+      setIsLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append('image', listingDraft.originalImage.file);
+
+        const response = await fetch('/api/detect', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('AI 辨識失敗');
         }
+
+        const data = await response.json();
+        const result: string[] = Array.isArray(data?.items) ? data.items : [];
+        setCandidates(result);
+        setSelectedLabel(result[0] ?? '');
+      } catch (error) {
+        console.error('Error detecting item via API:', error);
+        setCandidates([]);
+        setSelectedLabel('');
+      } finally {
         setIsLoading(false);
       }
     };
+
     fetchCandidates();
   }, [listingDraft.originalImage]);
 
