@@ -3,47 +3,43 @@ export async function onRequestPost({ request, env }: { request: Request; env: a
     const { imageBase64 } = await request.json();
 
     if (!imageBase64) {
-      return Response.json({ ok: false, error: "缺少 imageBase64" }, { status: 400 });
+      return Response.json({ ok: false, error: "No imageBase64 provided" }, { status: 400 });
     }
 
-    const API_KEY = env.VITE_API_KEY;
+    const API_KEY = env.GEMINI_API_KEY;
     if (!API_KEY) {
-      return Response.json({ ok: false, error: "後端沒拿到 VITE_API_KEY" }, { status: 500 });
+      return Response.json({ ok: false, error: "後端沒拿到 GEMINI_API_KEY" }, { status: 500 });
     }
 
-    const base64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+    const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent";
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
-
-    const payload = {
-      contents: [
-        {
-          parts: [
-            { text: "請分析圖片並列出可能的商品名稱（名詞即可）：" },
-            {
-              inline_data: {
-                data: base64,
-                mime_type: "image/jpeg"
-              }
-            }
-          ]
-        }
-      ]
-    };
-
-    const aiRes = await fetch(endpoint, {
+    const result = await fetch(url + `?key=${API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: "請辨識圖片內容，回傳3個最接近的商品名稱，格式為純JSON，例如：{items:['咖啡隨行杯','鋼杯','水壺']}" },
+              { inlineData: { mimeType: "image/jpeg", data: imageBase64 } }
+            ]
+          }
+        ]
+      })
     });
 
-    const data = await aiRes.json();
+    const data = await result.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    const items = text.split('\n').map(l => l.trim()). filter(Boolean);
+    let items: string[] = [];
+    try {
+      const parsed = JSON.parse(text);
+      items = parsed.items || [];
+    } catch (e) {
+      items = [text];
+    }
 
     return Response.json({ ok: true, items });
-
   } catch (err: any) {
     return Response.json(
       { ok: false, error: err.message || "AI 錯誤" },
