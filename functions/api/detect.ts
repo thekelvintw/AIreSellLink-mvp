@@ -113,17 +113,29 @@ export async function onRequestPost({ request, env }: { request: Request; env: a
 
     // 解析返回的商品名称
     let items: string[] = [];
-    try {
-      // 尝试解析 JSON 格式
-      const parsed = JSON.parse(text);
-      items = parsed.items || (Array.isArray(parsed) ? parsed : []);
-    } catch (e) {
-      // 如果不是 JSON，尝试按行分割
-      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-      items = lines.length > 0 ? lines : [text];
+
+    // 若回傳 JSON 格式且為陣列
+    if (text) {
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) {
+          items = parsed;
+        } else if (parsed.items && Array.isArray(parsed.items)) {
+          items = parsed.items;
+        }
+      } catch (e) {
+        // JSON parse 失敗，使用 fallback
+        // 將文字按逗號或換行拆成最多三個選項
+        items = text.split(/[\n,；]/).map(s => s.trim()).filter(s => s).slice(0, 3);
+      }
     }
 
-    // 确保至少返回一个结果
+    // 如果仍然沒有 items，使用文字內容做一個選項
+    if (items.length === 0 && text) {
+      items = [text];
+    }
+
+    // 如果还是没有，返回默认值
     if (items.length === 0) {
       items = ["未辨識到商品"];
     }
