@@ -117,13 +117,8 @@ const PricePage: React.FC = () => {
 
     const trimmedPrice = price.trim();
     const trimmedNickname = nickname.trim();
-    const trimmedContactValue = contact.value.trim();
-    const isFormValid = Boolean(
-        trimmedPrice &&
-        trimmedNickname &&
-        contact.type &&
-        trimmedContactValue
-    );
+    // 只檢查真正必填的兩個欄位：價格和暱稱
+    const isNextDisabled = !trimmedPrice || !trimmedNickname;
 
     return (
         <PageLayout>
@@ -138,19 +133,20 @@ const PricePage: React.FC = () => {
                     <PriceInput hintMin={priceHint.min} hintMax={priceHint.max} value={price} onChange={setPrice} />
                     <ContactPicker onNicknameChange={setNickname} onContactChange={setContact} />
                     <button
+                        type="button"
                         onClick={handleGenerate}
-                        disabled={!isFormValid}
-                        className={`w-full rounded-lg py-3 font-semibold transition-colors duration-200 focus:ring-2 focus:ring-offset-2 ${
-                            isFormValid
-                                ? 'bg-brand-dark text-white hover:bg-gray-800 focus:ring-brand-dark'
-                                : 'bg-gray-400 text-white cursor-not-allowed opacity-80'
+                        disabled={isNextDisabled}
+                        className={`w-full rounded-lg py-3 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                            isNextDisabled
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-brand-dark text-white hover:bg-gray-800 focus:ring-brand-dark'
                         }`}
                     >
                         生成分享頁
                     </button>
-                    {!isFormValid && (
+                    {isNextDisabled && (
                         <p className="text-sm text-gray-500 text-center">
-                            請先填寫售價、暱稱與聯絡方式
+                            請先填寫售價與暱稱
                         </p>
                     )}
                 </div>
