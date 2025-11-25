@@ -4,7 +4,6 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { ListingContext } from '../context/ListingContext';
 import { suggestPrice } from '../services/geminiService';
 import PageLayout from '../components/PageLayout';
-import Button from '../components/Button';
 import type { Contact } from '../types';
 
 const PriceInput: React.FC<{ hintMin: number, hintMax: number, value: string, onChange: (value: string) => void }> = ({ hintMin, hintMax, value, onChange }) => {
@@ -116,7 +115,15 @@ const PricePage: React.FC = () => {
         navigate(`/share/${slug}`);
     };
 
-    const isFormValid = price && nickname && contact.type && contact.value;
+    const trimmedPrice = price.trim();
+    const trimmedNickname = nickname.trim();
+    const trimmedContactValue = contact.value.trim();
+    const isFormValid = Boolean(
+        trimmedPrice &&
+        trimmedNickname &&
+        contact.type &&
+        trimmedContactValue
+    );
 
     return (
         <PageLayout>
@@ -130,7 +137,22 @@ const PricePage: React.FC = () => {
                     <h1 className="text-2xl font-bold">價格與聯絡方式</h1>
                     <PriceInput hintMin={priceHint.min} hintMax={priceHint.max} value={price} onChange={setPrice} />
                     <ContactPicker onNicknameChange={setNickname} onContactChange={setContact} />
-                    <Button label="生成分享頁" onClick={handleGenerate} disabled={!isFormValid} />
+                    <button
+                        onClick={handleGenerate}
+                        disabled={!isFormValid}
+                        className={`w-full rounded-lg py-3 font-semibold transition-colors duration-200 focus:ring-2 focus:ring-offset-2 ${
+                            isFormValid
+                                ? 'bg-brand-dark text-white hover:bg-gray-800 focus:ring-brand-dark'
+                                : 'bg-gray-400 text-white cursor-not-allowed opacity-80'
+                        }`}
+                    >
+                        生成分享頁
+                    </button>
+                    {!isFormValid && (
+                        <p className="text-sm text-gray-500 text-center">
+                            請先填寫售價、暱稱與聯絡方式
+                        </p>
+                    )}
                 </div>
             )}
         </PageLayout>
