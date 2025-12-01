@@ -5,11 +5,30 @@
 
 export default {
   async fetch(request, env) {
+    // 处理 CORS 预检请求
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Max-Age': '86400',
+        },
+      });
+    }
+
     // 只允许 POST 请求
     if (request.method !== 'POST') {
       return new Response(
         JSON.stringify({ success: false, message: 'Method not allowed' }),
-        { status: 405, headers: { 'Content-Type': 'application/json' } }
+        { 
+          status: 405, 
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          } 
+        }
       );
     }
 
