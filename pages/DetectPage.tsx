@@ -4,6 +4,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { ListingContext } from '../context/ListingContext';
 import PageLayout from '../components/PageLayout';
 import Button from '../components/Button';
+import { detectItemFromFile } from '../services/geminiService';
 
 const CandidatesList: React.FC<{ candidates: string[], selected: string, onSelect: (label: string) => void }> = ({ candidates, selected, onSelect }) => {
     return (
@@ -34,31 +35,21 @@ const DetectPage: React.FC = () => {
   const [selectedLabel, setSelectedLabel] = useState<string>('');
   const [officialUrl, setOfficialUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [detectError, setDetectError] = useState(false);
   const navigate = useNavigate();
   
   useEffect(() => {
     const fetchCandidates = async () => {
       if (!listingDraft.originalImage?.file) return;
-      setIsLoading(true);
+        setIsLoading(true);
       try {
-        const formData = new FormData();
-        formData.append('image', listingDraft.originalImage.file);
-
-        const response = await fetch('/api/detect', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error('AI 辨識失敗');
-        }
-
-        const data = await response.json();
-        const result: string[] = Array.isArray(data?.items) ? data.items : [];
+        const result = await detectItemFromFile(listingDraft.originalImage.file);
         setCandidates(result);
         setSelectedLabel(result[0] ?? '');
+        setDetectError(false);
       } catch (error) {
-        console.error('Error detecting item via API:', error);
+        console.warn('AI 辨識失敗，改用 fallback', error);
+        setDetectError(true);
         setCandidates([]);
         setSelectedLabel('');
       } finally {
@@ -95,13 +86,29 @@ const DetectPage: React.FC = () => {
             </div>
         ) : (
             <div className="space-y-6">
-                <div>
-                    <h2 className="text-xl font-bold mb-2">AI 辨識結果</h2>
-                    <p className="text-sm text-gray-600 mb-2">
-                        根據圖片顯示的品牌標誌和產品外觀，最接近的商品名稱是：
+                {detectError ? (
+                  <div className="space-y-3">
+                    <h2 className="text-xl font-bold">AI 辨識暫時無法使用</h2>
+                    <p className="text-sm text-gray-600">
+                      請直接輸入商品名稱，系統會照常繼續下個步驟。
                     </p>
-                    <CandidatesList candidates={candidates} selected={selectedLabel} onSelect={setSelectedLabel} />
-                </div>
+                    <input
+                      type="text"
+                      value={selectedLabel}
+                      onChange={(e) => setSelectedLabel(e.target.value)}
+                      placeholder="輸入商品名稱"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-brand-accent focus:border-brand-accent"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                      <h2 className="text-xl font-bold mb-2">AI 辨識結果</h2>
+                      <p className="text-sm text-gray-600 mb-2">
+                          根據圖片顯示的品牌標誌和產品外觀，最接近的商品名稱是：
+                      </p>
+                      <CandidatesList candidates={candidates} selected={selectedLabel} onSelect={setSelectedLabel} />
+                  </div>
+                )}
                 <div>
                     <h2 className="text-xl font-bold mb-2">官網連結 (選填)</h2>
                     <p className="text-gray-500 mb-4">提供連結能生成更精準的文案</p>
@@ -116,7 +123,7 @@ const DetectPage: React.FC = () => {
             </div>
         )}
 
-        <Button label="下一步" onClick={handleNext} disabled={isLoading || !selectedLabel} />
+        <Button label="下一步" onClick={handleNext} disabled={isLoading || !selectedLabel.trim()} />
       </div>
     </PageLayout>
   );
