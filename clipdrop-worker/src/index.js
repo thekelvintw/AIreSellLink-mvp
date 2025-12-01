@@ -8,14 +8,8 @@ function corsHeaders() {
 
 export default {
   async fetch(request, env) {
-    // --- CORS 預檢 ---
     if (request.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          ...corsHeaders(),
-        },
-      });
+      return new Response(null, { status: 204, headers: corsHeaders() });
     }
 
     try {
@@ -23,21 +17,16 @@ export default {
       const file = formData.get("image_file");
 
       if (!file) {
-        return new Response(
-          JSON.stringify({ success: false, message: "No file received" }),
-          {
-            status: 400,
-            headers: {
-              ...corsHeaders(),
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        return new Response(JSON.stringify({ success: false, message: "No file received" }), {
+          status: 400,
+          headers: { ...corsHeaders(), "Content-Type": "application/json" },
+        });
       }
 
-      // forward 到 ClipDrop
+      // --- ClipDrop Payload ---
       const clipForm = new FormData();
       clipForm.append("image_file", file);
+      clipForm.append("prompt", "remove the background");
 
       const response = await fetch("https://clipdrop-api.co/cleanup/v1", {
         method: "POST",
@@ -48,19 +37,16 @@ export default {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
+        const errText = await response.text();
         return new Response(
           JSON.stringify({
             success: false,
-            message: "ClipDrop API error",
-            detail: errorText,
+            message: "ClipDrop API Error",
+            detail: errText,
           }),
           {
             status: 500,
-            headers: {
-              ...corsHeaders(),
-              "Content-Type": "application/json",
-            },
+            headers: { ...corsHeaders(), "Content-Type": "application/json" },
           }
         );
       }
@@ -68,6 +54,7 @@ export default {
       const blob = await response.blob();
 
       return new Response(blob, {
+        status: 200,
         headers: {
           ...corsHeaders(),
           "Content-Type": "image/png",
@@ -75,17 +62,10 @@ export default {
       });
     } catch (err) {
       return new Response(
-        JSON.stringify({
-          success: false,
-          message: "Worker error",
-          error: err.toString(),
-        }),
+        JSON.stringify({ success: false, error: err.toString() }),
         {
           status: 500,
-          headers: {
-            ...corsHeaders(),
-            "Content-Type": "application/json",
-          },
+          headers: { ...corsHeaders(), "Content-Type": "application/json" },
         }
       );
     }
