@@ -116,15 +116,17 @@ const UploadPage: React.FC = () => {
       let imageFile = file;
       let base64Data = '';
 
+      const resultMime = result.mimeType || file.type || 'image/png';
+
       if (result.url) {
         displayUrl = result.url;
         const response = await fetch(result.url);
         const blob = await response.blob();
-        imageFile = new File([blob], 'no-bg.png', { type: blob.type || 'image/png' });
+        imageFile = new File([blob], 'no-bg.png', { type: resultMime || blob.type || 'image/png' });
         base64Data = await fileToBase64(imageFile);
       } else {
         base64Data = result.base64 || (await fileToBase64(file));
-        displayUrl = createDataUrl(base64Data, file.type);
+        displayUrl = createDataUrl(base64Data, resultMime);
       }
 
       setNoBgUrl(displayUrl);
