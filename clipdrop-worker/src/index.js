@@ -23,12 +23,11 @@ export default {
         });
       }
 
-      // --- ClipDrop Payload ---
+      // --- ClipDrop remove-background Payload ---
       const clipForm = new FormData();
       clipForm.append("image_file", file);
-      clipForm.append("prompt", "remove the background");
 
-      const response = await fetch("https://clipdrop-api.co/cleanup/v1", {
+      const response = await fetch("https://clipdrop-api.co/remove-background/v1", {
         method: "POST",
         headers: {
           "x-api-key": env.CLIPDROP_API_KEY,
