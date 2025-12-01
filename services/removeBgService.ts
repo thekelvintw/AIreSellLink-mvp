@@ -41,20 +41,25 @@ export const removeBackground = async (file: File): Promise<RemoveBgResult> => {
       throw new Error(`HTTP ${response.status}`);
     }
 
+    // Worker 返回 blob (image/png)，本地后端返回 JSON
+    const contentType = response.headers.get('content-type') || '';
+    
+    if (contentType.includes('image/png')) {
+      // Worker 返回的是 blob，转换为 base64
+      const blob = await response.blob();
+      const base64 = await fileToBase64(new File([blob], 'no-bg.png', { type: 'image/png' }));
+      return {
+        base64,
+        usedFallback: false,
+      };
+    }
+
+    // 本地后端返回 JSON 格式
     const data: RemoveBgResponse = await response.json();
     
     if (!data.success) {
       console.warn('remove-bg 回傳失敗，將使用原圖繼續', data);
       throw new Error(data.message || '無效的去背回應');
-    }
-
-    // Worker 返回格式：{ success: true, data: "data:image/png;base64,..." }
-    if (data.data) {
-      const base64 = data.data.replace(/^data:image\/\w+;base64,/, '');
-      return {
-        base64,
-        usedFallback: false,
-      };
     }
 
     // 本地后端返回格式：{ success: true, url: "/uploads/..." }
