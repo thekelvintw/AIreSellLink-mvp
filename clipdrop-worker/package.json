@@ -1,0 +1,14 @@
+{
+  "name": "clipdrop-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for ClipDrop Cleanup API",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
+

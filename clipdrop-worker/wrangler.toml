@@ -1,0 +1,10 @@
+name = "clipdrop-worker"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[env.production]
+name = "clipdrop-worker"
+
+[env.production.vars]
+# 环境变量会在 Cloudflare Dashboard 中设置
+
